@@ -1,0 +1,87 @@
+﻿@model IEnumerable<FoodReviews.Models.Restaurant>
+
+@{
+    ViewData["Title"] = "餐廳搜尋";
+}
+
+<h1>餐廳搜尋</h1>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form asp-action="Index" method="get" class="form-inline">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="searchString" class="form-control" placeholder="餐廳名稱" value="@ViewData["CurrentFilter"]" />
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="address" class="form-control" placeholder="地址" value="@ViewData["AddressFilter"]" />
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="minRating" class="form-control" placeholder="最低評分" value="@ViewData["RatingFilter"]" step="0.1" min="0" max="5" />
+                </div>
+                <div class="col-md-2">
+                    <input type="submit" value="搜尋" class="btn btn-primary" />
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<p>
+    <a asp-action="Create" class="btn btn-success">新增餐廳</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>
+                餐廳名稱
+            </th>
+            <th>
+                地址
+            </th>
+            <th>
+                電話
+            </th>
+            <th>
+                營業時間
+            </th>
+            <th>
+                平均評分
+            </th>
+            <th>
+                評論數量
+            </th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.RestaurantName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Address)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Phone)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.OpeningHours)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.AverageRating)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TotalReviews)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.RestaurantId" class="btn btn-sm btn-primary">編輯</a>
+                <a asp-action="Details" asp-route-id="@item.RestaurantId" class="btn btn-sm btn-info">菜單</a>
+                <a asp-action="Delete" asp-route-id="@item.RestaurantId" class="btn btn-sm btn-danger">刪除</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

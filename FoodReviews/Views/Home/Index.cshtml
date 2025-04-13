@@ -1,8 +1,249 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "餐廳搜尋";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="search-container">
+    <div class="logo-container">
+        <h1 class="logo">FoodReviews</h1>
+        <p class="subtitle">搜尋餐廳</p>
+    </div>
+
+    <div class="search-box-container">
+        <form asp-action="Search" method="post" class="search-form" id="searchForm">
+            <div class="search-box">
+                <input type="text" name="searchQuery" id="searchInput" class="search-input" placeholder="輸入餐廳名稱..." autocomplete="off" autofocus>
+                <button type="submit" class="search-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+            </div>
+            <div id="suggestions" class="suggestions-container"></div>
+        </form>
+    </div>
+
+    <div class="quick-links">
+        <a href="@Url.Action("Index", "Restaurants")" class="quick-link">查看所有餐廳</a>
+        <a href="@Url.Action("Create", "Restaurants")" class="quick-link">新增餐廳</a>
+    </div>
 </div>
+
+<style>
+    .search-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 80vh;
+        text-align: center;
+    }
+
+    .logo-container {
+        margin-bottom: 30px;
+    }
+
+    .logo {
+        font-size: 5rem;
+        font-weight: 500;
+        color: #4285f4;
+        margin-bottom: 10px;
+    }
+
+    .subtitle {
+        font-size: 1.5rem;
+        color: #5f6368;
+    }
+
+    .search-box-container {
+        width: 100%;
+        max-width: 584px;
+        margin-bottom: 30px;
+        position: relative;
+    }
+
+    .search-form {
+        width: 100%;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 44px;
+        border: 1px solid #dfe1e5;
+        border-radius: 24px;
+        padding: 0 15px;
+        box-shadow: 0 1px 6px rgba(32,33,36,.28);
+        transition: box-shadow 0.3s;
+    }
+
+        .search-box:hover, .search-box:focus-within {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28), 0 1px 8px rgba(32,33,36,.28);
+        }
+
+    .search-input {
+        flex: 1;
+        height: 34px;
+        border: none;
+        outline: none;
+        font-size: 16px;
+        padding: 0 10px;
+    }
+
+    .search-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #9aa0a6;
+        padding: 0 10px;
+    }
+
+        .search-button:hover {
+            color: #4285f4;
+        }
+
+    .quick-links {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .quick-link {
+        color: #4285f4;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+        .quick-link:hover {
+            text-decoration: underline;
+        }
+
+    .suggestions-container {
+        position: absolute;
+        top: 50px;
+        left: 0;
+        right: 0;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+
+    .suggestion-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+
+    .suggestion-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .suggestion-address {
+        font-size: 12px;
+        color: #666;
+        margin-top: 2px;
+    }
+
+    .suggestion-rating {
+        font-size: 12px;
+        color: #f39c12;
+        margin-top: 2px;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const suggestionsContainer = document.getElementById('suggestions');
+            const searchForm = document.getElementById('searchForm');
+            let debounceTimer;
+
+            // 當輸入框內容變化時
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
+
+                if (query.length < 1) {
+                    suggestionsContainer.style.display = 'none';
+                    return;
+                }
+
+                // 使用 debounce 避免過多請求
+                debounceTimer = setTimeout(() => {
+                    fetch(`/Home/GetRestaurantSuggestions?query=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.length > 0) {
+                                displaySuggestions(data);
+                            } else {
+                                suggestionsContainer.style.display = 'none';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching suggestions:', error);
+                            suggestionsContainer.style.display = 'none';
+                        });
+                }, 300);
+            });
+
+            // 點擊其他地方時隱藏建議
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+
+            // 顯示建議列表
+            function displaySuggestions(suggestions) {
+                suggestionsContainer.innerHTML = '';
+
+                suggestions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+
+                    const name = document.createElement('div');
+                    name.className = 'suggestion-name';
+                    name.textContent = suggestion.name;
+
+                    const address = document.createElement('div');
+                    address.className = 'suggestion-address';
+                    address.textContent = suggestion.address;
+
+                    const rating = document.createElement('div');
+                    rating.className = 'suggestion-rating';
+                    rating.textContent = suggestion.rating ? `評分: ${suggestion.rating.toFixed(1)}` : '尚無評分';
+
+                    item.appendChild(name);
+                    item.appendChild(address);
+                    item.appendChild(rating);
+
+                    // 點擊建議項目時跳轉到餐廳詳情頁
+                    item.addEventListener('click', function() {
+                        window.location.href = `/Restaurants/Details/${suggestion.id}`;
+                    });
+
+                    suggestionsContainer.appendChild(item);
+                });
+
+                suggestionsContainer.style.display = 'block';
+            }
+        });
+    </script>
+}

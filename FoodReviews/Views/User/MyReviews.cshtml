@@ -1,0 +1,258 @@
+@model FoodReviews.Controllers.MyReviewsViewModel
+@{
+    ViewData["Title"] = "我的評論";
+}
+
+<div class="my-reviews-container">
+    <h1 class="page-title">我的評論</h1>
+    
+    <div class="tabs">
+        <button class="tab-button active" data-tab="restaurant-reviews">餐廳評論</button>
+        <button class="tab-button" data-tab="menu-item-reviews">菜單項目評論</button>
+    </div>
+    
+    <div class="tab-content active" id="restaurant-reviews">
+        @if (Model.RestaurantReviews.Any())
+        {
+            <div class="reviews-list">
+                @foreach (var review in Model.RestaurantReviews)
+                {
+                    <div class="review-card">
+                        <div class="review-header">
+                            <h3 class="restaurant-name">
+                                <a asp-controller="Restaurants" asp-action="Details" asp-route-id="@review.RestaurantId">
+                                    @review.Restaurant.RestaurantName
+                                </a>
+                            </h3>
+                            <div class="review-date">@(review.ReviewDate?.ToString("yyyy/MM/dd HH:mm") ?? "未設定日期")</div>
+                        </div>
+                        
+                        <div class="review-rating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                if (i <= review.Rating)
+                                {
+                                    <span class="star filled">★</span>
+                                }
+                                else
+                                {
+                                    <span class="star">☆</span>
+                                }
+                            }
+                            <span class="rating-value">@review.Rating 分</span>
+                        </div>
+                        
+                        <div class="review-comment">
+                            @review.Comment
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-reviews">
+                <p>您還沒有對任何餐廳發表評論。</p>
+                <a asp-controller="Restaurants" asp-action="Index" class="btn btn-primary">瀏覽餐廳</a>
+            </div>
+        }
+    </div>
+    
+    <div class="tab-content" id="menu-item-reviews">
+        @if (Model.MenuItemReviews.Any())
+        {
+            <div class="reviews-list">
+                @foreach (var review in Model.MenuItemReviews)
+                {
+                    <div class="review-card">
+                        <div class="review-header">
+                            <h3 class="restaurant-name">
+                                <a asp-controller="Restaurants" asp-action="Details" asp-route-id="@review.MenuItem.RestaurantId">
+                                    @review.MenuItem.Restaurant.RestaurantName
+                                </a>
+                            </h3>
+                            <div class="menu-item-name">@review.MenuItem.ItemName</div>
+                            <div class="review-date">@(review.ReviewDate?.ToString("yyyy/MM/dd HH:mm") ?? "未設定日期")</div>
+                        </div>
+                        
+                        <div class="review-rating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                if (i <= review.Rating)
+                                {
+                                    <span class="star filled">★</span>
+                                }
+                                else
+                                {
+                                    <span class="star">☆</span>
+                                }
+                            }
+                            <span class="rating-value">@review.Rating 分</span>
+                        </div>
+                        
+                        <div class="review-comment">
+                            @review.Comment
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-reviews">
+                <p>您還沒有對任何菜單項目發表評論。</p>
+                <a asp-controller="Restaurants" asp-action="Index" class="btn btn-primary">瀏覽餐廳</a>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .my-reviews-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .page-title {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #333;
+    }
+    
+    .tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .tab-button {
+        padding: 10px 20px;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        color: #666;
+        transition: all 0.3s;
+    }
+    
+    .tab-button:hover {
+        color: #4285f4;
+    }
+    
+    .tab-button.active {
+        color: #4285f4;
+        border-bottom-color: #4285f4;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    .reviews-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .review-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+    
+    .review-header {
+        margin-bottom: 15px;
+    }
+    
+    .restaurant-name {
+        margin: 0;
+        font-size: 18px;
+    }
+    
+    .restaurant-name a {
+        color: #333;
+        text-decoration: none;
+    }
+    
+    .restaurant-name a:hover {
+        color: #4285f4;
+    }
+    
+    .menu-item-name {
+        font-size: 16px;
+        color: #666;
+        margin-top: 5px;
+    }
+    
+    .review-date {
+        font-size: 14px;
+        color: #999;
+        margin-top: 5px;
+    }
+    
+    .review-rating {
+        margin-bottom: 15px;
+    }
+    
+    .star {
+        font-size: 18px;
+        color: #ddd;
+    }
+    
+    .star.filled {
+        color: #f39c12;
+    }
+    
+    .rating-value {
+        margin-left: 5px;
+        font-size: 14px;
+        color: #666;
+    }
+    
+    .review-comment {
+        color: #333;
+        line-height: 1.5;
+    }
+    
+    .no-reviews {
+        text-align: center;
+        padding: 40px 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+    }
+    
+    .no-reviews p {
+        margin-bottom: 20px;
+        color: #666;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // 移除所有按鈕和內容的 active 類
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // 添加當前按鈕和對應內容的 active 類
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        });
+    </script>
+} 
