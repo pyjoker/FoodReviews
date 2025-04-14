@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using FoodReviews.Models;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace FoodReviews.Controllers
 {
@@ -24,6 +26,15 @@ namespace FoodReviews.Controllers
             ViewData["CurrentFilter"] = searchString;
             ViewData["AddressFilter"] = address;
             ViewData["RatingFilter"] = minRating;
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = false;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await _context.Users.FindAsync(int.Parse(userId));
+                isAdmin = user?.IsAdmin ?? false;
+            }
+            ViewBag.IsAdmin = isAdmin;
 
             var restaurants = from r in _context.Restaurants
                             select r;
@@ -72,8 +83,11 @@ namespace FoodReviews.Controllers
                 .OrderBy(c => c)
                 .ToList();
 
+            // 初始化所有類別為選中狀態
+            var selectedCategories = categories.ToDictionary(c => c, c => true);
+
             ViewBag.Categories = categories;
-            ViewBag.SelectedCategories = categories.ToDictionary(c => c, _ => true);
+            ViewBag.SelectedCategories = selectedCategories;
 
             return View(restaurant);
         }
@@ -81,6 +95,18 @@ namespace FoodReviews.Controllers
         // GET: Restaurants/Create
         public IActionResult Create()
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = _context.Users.Find(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Index");
+            }
+
             return View();
         }
 
@@ -91,6 +117,18 @@ namespace FoodReviews.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("RestaurantId,RestaurantName,Address,Phone,OpeningHours,AverageRating,TotalReviews")] Restaurant restaurant)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Index");
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(restaurant);
@@ -103,6 +141,18 @@ namespace FoodReviews.Controllers
         // GET: Restaurants/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Index");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -123,6 +173,18 @@ namespace FoodReviews.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("RestaurantId,RestaurantName,Address,Phone,OpeningHours,AverageRating,TotalReviews")] Restaurant restaurant)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Index");
+            }
+
             if (id != restaurant.RestaurantId)
             {
                 return NotFound();
@@ -154,6 +216,18 @@ namespace FoodReviews.Controllers
         // GET: Restaurants/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Index");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -174,13 +248,24 @@ namespace FoodReviews.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Index");
+            }
+
             var restaurant = await _context.Restaurants.FindAsync(id);
             if (restaurant != null)
             {
                 _context.Restaurants.Remove(restaurant);
+                await _context.SaveChangesAsync();
             }
-
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

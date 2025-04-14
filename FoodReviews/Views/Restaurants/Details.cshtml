@@ -59,13 +59,21 @@
             </div>
 
             <div class="sort-controls">
-                <select id="sortOrder" class="form-select">
-                    <option value="default">預設排序</option>
-                    <option value="rating-desc">評分由高至低</option>
-                    <option value="rating-asc">評分由低至高</option>
-                    <option value="price-desc">價格由高至低</option>
-                    <option value="price-asc">價格由低至高</option>
-                </select>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input sort-radio" type="radio" 
+                           name="sortOrder" id="sort-default" value="default" checked>
+                    <label class="form-check-label" for="sort-default">預設排序</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input sort-radio" type="radio" 
+                           name="sortOrder" id="sort-rating-desc" value="rating-desc">
+                    <label class="form-check-label" for="sort-rating-desc">評分由高至低</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input sort-radio" type="radio" 
+                           name="sortOrder" id="sort-rating-asc" value="rating-asc">
+                    <label class="form-check-label" for="sort-rating-asc">評分由低至高</label>
+                </div>
             </div>
         </div>
 
@@ -432,7 +440,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const categoryFilters = document.querySelectorAll('.category-filter');
             const menuCategories = document.querySelectorAll('.menu-category');
-            const sortSelect = document.getElementById('sortOrder');
+            const sortRadios = document.querySelectorAll('.sort-radio');
             const allCheckbox = document.getElementById('category-all');
 
             function updateVisibility() {
@@ -479,7 +487,7 @@
             });
 
             function sortMenuItems() {
-                const sortValue = sortSelect.value;
+                const sortValue = document.querySelector('input[name="sortOrder"]:checked').value;
                 menuCategories.forEach(category => {
                     const itemsGrid = category.querySelector('.menu-items-grid');
                     const items = Array.from(itemsGrid.children);
@@ -490,10 +498,6 @@
                                 return parseFloat(b.dataset.rating) - parseFloat(a.dataset.rating);
                             case 'rating-asc':
                                 return parseFloat(a.dataset.rating) - parseFloat(b.dataset.rating);
-                            case 'price-desc':
-                                return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
-                            case 'price-asc':
-                                return parseFloat(a.dataset.price) - parseFloat(a.dataset.price);
                             default:
                                 return 0;
                         }
@@ -503,7 +507,10 @@
                 });
             }
 
-            sortSelect.addEventListener('change', sortMenuItems);
+            // 監聽排序選項的變化
+            sortRadios.forEach(radio => {
+                radio.addEventListener('change', sortMenuItems);
+            });
         });
 
         // 顯示評論彈出式視窗

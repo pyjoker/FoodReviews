@@ -16,6 +16,6 @@ public partial class User
     public string Password { get; set; }
 
     public DateTime? RegisterDate { get; set; }
-
+    public bool IsAdmin { get; set; }
     public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

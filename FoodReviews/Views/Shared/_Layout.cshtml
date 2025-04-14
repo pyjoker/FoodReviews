@@ -36,7 +36,11 @@
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                     <li><a class="dropdown-item" href="@Url.Action("Index", "UserReviews")">我的評論</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="@Url.Action("Logout", "Account")">登出</a></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item">
+                                            <button type="submit" class="btn btn-link p-0">登出</button>
+                                        </form>
+                                    </li>
                                 </ul>
                             </li>
                         }
