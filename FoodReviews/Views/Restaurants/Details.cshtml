@@ -132,12 +132,12 @@
 </div>
 
 <!-- 評論彈出式視窗 -->
-<div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal fade" id="reviewsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="reviewsModalLabel">評論</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="item-info mb-3">
@@ -148,12 +148,47 @@
                         <span class="review-count" id="modalItemReviewCount"></span>
                     </div>
                 </div>
+
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <div class="review-form mb-4">
+                        <h5>發表評論</h5>
+                        <form id="reviewForm" class="needs-validation" novalidate>
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" id="menuItemId" name="menuItemId" />
+                            <input type="hidden" id="selectedRating" name="rating" value="" required />
+                            <div class="mb-3">
+                                <label class="form-label">評分</label>
+                                <div class="star-rating">
+                                    <div class="star" data-rating="1">★</div>
+                                    <div class="star" data-rating="2">★</div>
+                                    <div class="star" data-rating="3">★</div>
+                                    <div class="star" data-rating="4">★</div>
+                                    <div class="star" data-rating="5">★</div>
+                                </div>
+                                <div class="invalid-feedback">請選擇評分</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="comment" class="form-label">評論內容</label>
+                                <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
+                                <div class="invalid-feedback">請輸入評論內容</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">提交評論</button>
+                        </form>
+                    </div>
+                    <hr />
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 請 <a href="@Url.Action("Login", "Account")">登入</a> 後發表評論
+                    </div>
+                    <hr />
+                }
+
                 <div class="reviews-container" id="reviewsContainer">
                     <!-- 評論將在這裡動態加載 -->
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
             </div>
         </div>
     </div>
@@ -433,6 +468,38 @@
             grid-template-columns: 1fr;
         }
     }
+
+    .review-form {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+
+    .star-rating {
+        display: flex;
+        flex-direction: row;
+        gap: 5px;
+        font-size: 30px;
+        cursor: pointer;
+    }
+
+    .star {
+        color: #ddd;
+        transition: color 0.2s;
+    }
+
+    .star:hover,
+    .star.active {
+        color: #f39c12;
+    }
+
+    .star-rating:hover .star {
+        color: #f39c12;
+    }
+
+    .star-rating .star:hover ~ .star {
+        color: #ddd;
+    }
 </style>
 
 @section Scripts {
@@ -515,100 +582,231 @@
 
         // 顯示評論彈出式視窗
         function showReviews(element) {
-            const itemId = element.dataset.itemId;
-            const itemName = element.dataset.itemName;
-            const rating = parseFloat(element.dataset.itemRating);
-            const reviewCount = parseInt(element.dataset.itemReviews);
+            try {
+                const itemId = element.dataset.itemId;
+                const itemName = element.dataset.itemName;
+                const rating = parseFloat(element.dataset.itemRating);
+                const reviewCount = parseInt(element.dataset.itemReviews);
 
-            // 設置彈出式視窗標題和評分
-            document.getElementById('modalItemName').textContent = itemName;
-            document.getElementById('modalItemRating').textContent = rating.toFixed(1);
-            document.getElementById('modalItemReviewCount').textContent = `(${reviewCount} 則評論)`;
-            
-            // 設置星級評分
-            const starsContainer = document.getElementById('modalItemStars');
-            starsContainer.innerHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                const star = document.createElement('span');
-                star.className = i <= Math.round(rating) ? 'star filled' : 'star';
-                star.textContent = i <= Math.round(rating) ? '★' : '☆';
-                starsContainer.appendChild(star);
+                // 設置菜單項目 ID
+                const menuItemIdElement = document.getElementById('menuItemId');
+                if (menuItemIdElement) {
+                    menuItemIdElement.value = itemId;
+                }
+
+                // 設置彈出式視窗標題和評分
+                document.getElementById('modalItemName').textContent = itemName;
+                document.getElementById('modalItemRating').textContent = rating.toFixed(1);
+                document.getElementById('modalItemReviewCount').textContent = `(${reviewCount} 則評論)`;
+                
+                // 設置星級評分
+                const starsContainer = document.getElementById('modalItemStars');
+                starsContainer.innerHTML = '';
+                for (let i = 1; i <= 5; i++) {
+                    const star = document.createElement('span');
+                    star.className = i <= Math.round(rating) ? 'star filled' : 'star';
+                    star.textContent = i <= Math.round(rating) ? '★' : '☆';
+                    starsContainer.appendChild(star);
+                }
+                
+                // 清空評論容器
+                const reviewsContainer = document.getElementById('reviewsContainer');
+                reviewsContainer.innerHTML = '';
+                
+                // 獲取該菜單項目的所有評論
+                const reviews = @Html.Raw(Json.Serialize(Model.MenuItems
+                    .Select(m => new {
+                        MenuItemId = m.MenuItemId,
+                        Reviews = m.Reviews
+                            .OrderByDescending(r => r.ReviewDate)
+                            .Select(r => new {
+                                UserName = r.User?.Username ?? "匿名用戶",
+                                Rating = r.Rating,
+                                Comment = r.Comment,
+                                ReviewDate = r.ReviewDate?.ToString("yyyy-MM-dd HH:mm")
+                            })
+                    })
+                    .ToDictionary(m => m.MenuItemId, m => m.Reviews)));
+                
+                const itemReviews = reviews[itemId] || [];
+                
+                if (itemReviews.length > 0) {
+                    itemReviews.forEach(review => {
+                        const reviewElement = document.createElement('div');
+                        reviewElement.className = 'review-item';
+                        
+                        const reviewHeader = document.createElement('div');
+                        reviewHeader.className = 'review-header';
+                        
+                        const reviewUser = document.createElement('div');
+                        reviewUser.className = 'review-user';
+                        reviewUser.textContent = review.userName;
+                        
+                        const reviewDate = document.createElement('div');
+                        reviewDate.className = 'review-date';
+                        reviewDate.textContent = review.reviewDate;
+                        
+                        reviewHeader.appendChild(reviewUser);
+                        reviewHeader.appendChild(reviewDate);
+                        
+                        const reviewRating = document.createElement('div');
+                        reviewRating.className = 'review-rating';
+                        
+                        const ratingStars = document.createElement('div');
+                        ratingStars.className = 'stars';
+                        for (let i = 1; i <= 5; i++) {
+                            const star = document.createElement('span');
+                            star.className = i <= review.rating ? 'star filled' : 'star';
+                            star.textContent = i <= review.rating ? '★' : '☆';
+                            ratingStars.appendChild(star);
+                        }
+                        
+                        reviewRating.appendChild(ratingStars);
+                        
+                        const reviewComment = document.createElement('div');
+                        reviewComment.className = 'review-comment';
+                        reviewComment.textContent = review.comment || '無評論內容';
+                        
+                        reviewElement.appendChild(reviewHeader);
+                        reviewElement.appendChild(reviewRating);
+                        reviewElement.appendChild(reviewComment);
+                        
+                        reviewsContainer.appendChild(reviewElement);
+                    });
+                } else {
+                    const noReviews = document.createElement('div');
+                    noReviews.className = 'text-center py-4';
+                    noReviews.textContent = '尚無評論';
+                    reviewsContainer.appendChild(noReviews);
+                }
+                
+                // 顯示彈出式視窗
+                const modal = new bootstrap.Modal(document.getElementById('reviewsModal'));
+                modal.show();
+            } catch (error) {
+                console.error('Error showing reviews:', error);
+                alert('顯示評論時發生錯誤，請稍後再試。');
             }
-            
-            // 清空評論容器
-            const reviewsContainer = document.getElementById('reviewsContainer');
-            reviewsContainer.innerHTML = '';
-            
-            // 獲取該菜單項目的所有評論
-            const reviews = @Html.Raw(Json.Serialize(Model.MenuItems
-                .Select(m => new {
-                    MenuItemId = m.MenuItemId,
-                    Reviews = m.Reviews
-                        .OrderByDescending(r => r.ReviewDate)
-                        .Select(r => new {
-                            UserName = r.User?.Username ?? "匿名用戶",
-                            Rating = r.Rating,
-                            Comment = r.Comment,
-                            ReviewDate = r.ReviewDate?.ToString("yyyy-MM-dd HH:mm")
-                        })
-                })
-                .ToDictionary(m => m.MenuItemId, m => m.Reviews)));
-            
-            const itemReviews = reviews[itemId] || [];
-            
-            if (itemReviews.length > 0) {
-                itemReviews.forEach(review => {
-                    const reviewElement = document.createElement('div');
-                    reviewElement.className = 'review-item';
-                    
-                    const reviewHeader = document.createElement('div');
-                    reviewHeader.className = 'review-header';
-                    
-                    const reviewUser = document.createElement('div');
-                    reviewUser.className = 'review-user';
-                    reviewUser.textContent = review.userName;
-                    
-                    const reviewDate = document.createElement('div');
-                    reviewDate.className = 'review-date';
-                    reviewDate.textContent = review.reviewDate;
-                    
-                    reviewHeader.appendChild(reviewUser);
-                    reviewHeader.appendChild(reviewDate);
-                    
-                    const reviewRating = document.createElement('div');
-                    reviewRating.className = 'review-rating';
-                    
-                    const ratingStars = document.createElement('div');
-                    ratingStars.className = 'stars';
-                    for (let i = 1; i <= 5; i++) {
-                        const star = document.createElement('span');
-                        star.className = i <= review.rating ? 'star filled' : 'star';
-                        star.textContent = i <= review.rating ? '★' : '☆';
-                        ratingStars.appendChild(star);
-                    }
-                    
-                    reviewRating.appendChild(ratingStars);
-                    
-                    const reviewComment = document.createElement('div');
-                    reviewComment.className = 'review-comment';
-                    reviewComment.textContent = review.comment || '無評論內容';
-                    
-                    reviewElement.appendChild(reviewHeader);
-                    reviewElement.appendChild(reviewRating);
-                    reviewElement.appendChild(reviewComment);
-                    
-                    reviewsContainer.appendChild(reviewElement);
-                });
-            } else {
-                const noReviews = document.createElement('div');
-                noReviews.className = 'text-center py-4';
-                noReviews.textContent = '尚無評論';
-                reviewsContainer.appendChild(noReviews);
-            }
-            
-            // 顯示彈出式視窗
-            const modal = new bootstrap.Modal(document.getElementById('reviewsModal'));
-            modal.show();
         }
+
+        // 星星評分功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const starRating = document.querySelector('.star-rating');
+            const selectedRatingInput = document.getElementById('selectedRating');
+            
+            if (starRating) {
+                starRating.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('star')) {
+                        const rating = e.target.dataset.rating;
+                        selectedRatingInput.value = rating;
+                        
+                        // 更新星星顯示
+                        const stars = starRating.querySelectorAll('.star');
+                        stars.forEach(star => {
+                            if (star.dataset.rating <= rating) {
+                                star.classList.add('active');
+                            } else {
+                                star.classList.remove('active');
+                            }
+                        });
+                    }
+                });
+                
+                // 滑鼠懸停效果
+                starRating.addEventListener('mouseover', function(e) {
+                    if (e.target.classList.contains('star')) {
+                        const rating = e.target.dataset.rating;
+                        const stars = starRating.querySelectorAll('.star');
+                        stars.forEach(star => {
+                            if (star.dataset.rating <= rating) {
+                                star.classList.add('active');
+                            } else {
+                                star.classList.remove('active');
+                            }
+                        });
+                    }
+                });
+                
+                // 滑鼠離開效果
+                starRating.addEventListener('mouseout', function() {
+                    const rating = selectedRatingInput.value;
+                    const stars = starRating.querySelectorAll('.star');
+                    stars.forEach(star => {
+                        if (star.dataset.rating <= rating) {
+                            star.classList.add('active');
+                        } else {
+                            star.classList.remove('active');
+                        }
+                    });
+                });
+            }
+        });
+
+        // 修改表單提交處理
+        document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                this.classList.add('was-validated');
+                return;
+            }
+
+            // 檢查評分是否已選擇
+            const ratingValue = document.getElementById('selectedRating').value;
+            if (!ratingValue) {
+                alert('請選擇評分');
+                return;
+            }
+
+            const formData = {
+                menuItemId: parseInt(document.getElementById('menuItemId').value),
+                restaurantId: @Model.RestaurantId,
+                rating: parseInt(ratingValue),
+                comment: document.getElementById('comment').value
+            };
+
+            console.log('Submitting review:', formData);
+
+            try {
+                const response = await fetch('/api/Reviews', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                console.log('Response status:', response.status);
+                
+                const responseData = await response.json();
+                console.log('Response data:', responseData);
+                
+                if (response.ok || (responseData && responseData.success)) {
+                    // 關閉評論視窗
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('reviewsModal'));
+                    modal.hide();
+                    
+                    // 重置表單
+                    this.reset();
+                    this.classList.remove('was-validated');
+                    
+                    // 重置星星評分
+                    const stars = document.querySelectorAll('.star');
+                    stars.forEach(star => star.classList.remove('active'));
+                    
+                    // 不再顯示成功訊息
+                    // 直接重新載入頁面以更新評論
+                    window.location.reload();
+                } else {
+                    console.error('Error response:', responseData);
+                    alert('提交評論失敗: ' + (responseData.message || '請稍後再試。'));
+                }
+            } catch (error) {
+                console.error('Error submitting review:', error);
+                alert('提交評論時發生錯誤，請稍後再試。');
+            }
+        });
     </script>
 }
