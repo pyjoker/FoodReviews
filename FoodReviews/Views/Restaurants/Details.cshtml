@@ -566,7 +566,8 @@
                             case 'rating-asc':
                                 return parseFloat(a.dataset.rating) - parseFloat(b.dataset.rating);
                             default:
-                                return 0;
+                                // 預設按照 MenuItemId 排序
+                                return parseInt(a.dataset.itemId) - parseInt(b.dataset.itemId);
                         }
                     });
 
