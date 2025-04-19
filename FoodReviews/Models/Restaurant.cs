@@ -17,9 +17,9 @@ public partial class Restaurant
     public string Phone { get; set; }
     [DisplayName("營業時間")]
     public string OpeningHours { get; set; }
-
+    [DisplayName("綜合評分")]
     public decimal? AverageRating { get; set; }
-
+    [DisplayName("評論數")]
     public int? TotalReviews { get; set; }
 
     public virtual ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
