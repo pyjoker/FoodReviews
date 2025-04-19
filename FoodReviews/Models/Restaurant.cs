@@ -2,19 +2,20 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace FoodReviews.Models;
 
 public partial class Restaurant
 {
     public int RestaurantId { get; set; }
-
+    [DisplayName("餐廳名稱")]
     public string RestaurantName { get; set; }
-
+    [DisplayName("地址")]
     public string Address { get; set; }
-
+    [DisplayName("電話")]
     public string Phone { get; set; }
-
+    [DisplayName("營業時間")]
     public string OpeningHours { get; set; }
 
     public decimal? AverageRating { get; set; }

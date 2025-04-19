@@ -149,6 +149,36 @@
                     </div>
                 </div>
 
+                <div class="reviews-container" id="reviewsContainer">
+                    <!-- 評論將在這裡動態加載 -->
+                </div>
+                
+                <!-- 分頁控制項 -->
+                <div class="pagination-container mt-3" id="paginationContainer" style="display: none;">
+                    <nav aria-label="評論分頁">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item">
+                                <a class="page-link" href="#" id="prevPage" aria-label="上一頁">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <span class="page-link" id="currentPage">1</span>
+                            </li>
+                            <li class="page-item">
+                                <span class="page-link" id="totalPages">/ 1</span>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" id="nextPage" aria-label="下一頁">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+
+                <hr class="my-4" />
+
                 @if (User.Identity.IsAuthenticated)
                 {
                     <div class="review-form mb-4">
@@ -176,19 +206,13 @@
                             <button type="submit" class="btn btn-primary">提交評論</button>
                         </form>
                     </div>
-                    <hr />
                 }
                 else
                 {
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> 請 <a href="@Url.Action("Login", "Account")">登入</a> 後發表評論
                     </div>
-                    <hr />
                 }
-
-                <div class="reviews-container" id="reviewsContainer">
-                    <!-- 評論將在這裡動態加載 -->
-                </div>
             </div>
         </div>
     </div>
@@ -500,6 +524,29 @@
     .star-rating .star:hover ~ .star {
         color: #ddd;
     }
+
+    .pagination-container {
+        margin-top: 20px;
+    }
+    
+    .pagination .page-link {
+        color: #007bff;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+        background-color: #fff;
+        border-color: #dee2e6;
+    }
 </style>
 
 @section Scripts {
@@ -631,55 +678,110 @@
                 
                 const itemReviews = reviews[itemId] || [];
                 
-                if (itemReviews.length > 0) {
-                    itemReviews.forEach(review => {
-                        const reviewElement = document.createElement('div');
-                        reviewElement.className = 'review-item';
-                        
-                        const reviewHeader = document.createElement('div');
-                        reviewHeader.className = 'review-header';
-                        
-                        const reviewUser = document.createElement('div');
-                        reviewUser.className = 'review-user';
-                        reviewUser.textContent = review.userName;
-                        
-                        const reviewDate = document.createElement('div');
-                        reviewDate.className = 'review-date';
-                        reviewDate.textContent = review.reviewDate;
-                        
-                        reviewHeader.appendChild(reviewUser);
-                        reviewHeader.appendChild(reviewDate);
-                        
-                        const reviewRating = document.createElement('div');
-                        reviewRating.className = 'review-rating';
-                        
-                        const ratingStars = document.createElement('div');
-                        ratingStars.className = 'stars';
-                        for (let i = 1; i <= 5; i++) {
-                            const star = document.createElement('span');
-                            star.className = i <= review.rating ? 'star filled' : 'star';
-                            star.textContent = i <= review.rating ? '★' : '☆';
-                            ratingStars.appendChild(star);
+                // 分頁設置
+                const pageSize = 2; // 每頁顯示的評論數量
+                const totalPages = Math.ceil(itemReviews.length / pageSize);
+                let currentPage = 1;
+                
+                // 更新分頁控制項
+                const paginationContainer = document.getElementById('paginationContainer');
+                const currentPageElement = document.getElementById('currentPage');
+                const totalPagesElement = document.getElementById('totalPages');
+                const prevPageButton = document.getElementById('prevPage');
+                const nextPageButton = document.getElementById('nextPage');
+                
+                // 顯示評論的函數
+                function displayReviews(page) {
+                    // 清空評論容器
+                    reviewsContainer.innerHTML = '';
+                    
+                    // 計算當前頁的評論範圍
+                    const startIndex = (page - 1) * pageSize;
+                    const endIndex = Math.min(startIndex + pageSize, itemReviews.length);
+                    
+                    // 顯示當前頁的評論
+                    if (itemReviews.length > 0) {
+                        for (let i = startIndex; i < endIndex; i++) {
+                            const review = itemReviews[i];
+                            const reviewElement = document.createElement('div');
+                            reviewElement.className = 'review-item';
+                            
+                            const reviewHeader = document.createElement('div');
+                            reviewHeader.className = 'review-header';
+                            
+                            const reviewUser = document.createElement('div');
+                            reviewUser.className = 'review-user';
+                            reviewUser.textContent = review.userName;
+                            
+                            const reviewDate = document.createElement('div');
+                            reviewDate.className = 'review-date';
+                            reviewDate.textContent = review.reviewDate;
+                            
+                            reviewHeader.appendChild(reviewUser);
+                            reviewHeader.appendChild(reviewDate);
+                            
+                            const reviewRating = document.createElement('div');
+                            reviewRating.className = 'review-rating';
+                            
+                            const ratingStars = document.createElement('div');
+                            ratingStars.className = 'stars';
+                            for (let i = 1; i <= 5; i++) {
+                                const star = document.createElement('span');
+                                star.className = i <= review.rating ? 'star filled' : 'star';
+                                star.textContent = i <= review.rating ? '★' : '☆';
+                                ratingStars.appendChild(star);
+                            }
+                            
+                            reviewRating.appendChild(ratingStars);
+                            
+                            const reviewComment = document.createElement('div');
+                            reviewComment.className = 'review-comment';
+                            reviewComment.textContent = review.comment || '無評論內容';
+                            
+                            reviewElement.appendChild(reviewHeader);
+                            reviewElement.appendChild(reviewRating);
+                            reviewElement.appendChild(reviewComment);
+                            
+                            reviewsContainer.appendChild(reviewElement);
                         }
-                        
-                        reviewRating.appendChild(ratingStars);
-                        
-                        const reviewComment = document.createElement('div');
-                        reviewComment.className = 'review-comment';
-                        reviewComment.textContent = review.comment || '無評論內容';
-                        
-                        reviewElement.appendChild(reviewHeader);
-                        reviewElement.appendChild(reviewRating);
-                        reviewElement.appendChild(reviewComment);
-                        
-                        reviewsContainer.appendChild(reviewElement);
-                    });
-                } else {
-                    const noReviews = document.createElement('div');
-                    noReviews.className = 'text-center py-4';
-                    noReviews.textContent = '尚無評論';
-                    reviewsContainer.appendChild(noReviews);
+                    } else {
+                        const noReviews = document.createElement('div');
+                        noReviews.className = 'text-center py-4';
+                        noReviews.textContent = '尚無評論';
+                        reviewsContainer.appendChild(noReviews);
+                    }
+                    
+                    // 更新分頁控制項
+                    currentPageElement.textContent = page;
+                    totalPagesElement.textContent = `/ ${totalPages}`;
+                    
+                    // 更新上一頁/下一頁按鈕狀態
+                    prevPageButton.parentElement.classList.toggle('disabled', page === 1);
+                    nextPageButton.parentElement.classList.toggle('disabled', page === totalPages || totalPages === 0);
+                    
+                    // 顯示或隱藏分頁控制項
+                    paginationContainer.style.display = totalPages > 1 ? 'block' : 'none';
                 }
+                
+                // 設置分頁事件監聽器
+                prevPageButton.onclick = function(e) {
+                    e.preventDefault();
+                    if (currentPage > 1) {
+                        currentPage--;
+                        displayReviews(currentPage);
+                    }
+                };
+                
+                nextPageButton.onclick = function(e) {
+                    e.preventDefault();
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        displayReviews(currentPage);
+                    }
+                };
+                
+                // 顯示第一頁評論
+                displayReviews(currentPage);
                 
                 // 顯示彈出式視窗
                 const modal = new bootstrap.Modal(document.getElementById('reviewsModal'));

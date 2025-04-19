@@ -19,12 +19,12 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
+                        <!--<li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">首頁</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Restaurants" asp-action="Index">餐廳</a>
-                        </li>
+                        </li>-->
                     </ul>
                     <ul class="navbar-nav">
                         @if (User.Identity.IsAuthenticated)
@@ -47,11 +47,11 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link" href="@Url.Action("Login", "Account")">登入</a>
+                                <a class="nav-link" href="@Url.Action("Login", "Account")">登入 / 註冊</a>
                             </li>
-                            <li class="nav-item">
+                            <!--<li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">註冊</a>
-                            </li>
+                            </li>-->
                         }
                     </ul>
                 </div>

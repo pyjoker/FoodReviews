@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FoodReviews.Models;
+using X.PagedList;
 
 namespace FoodReviews.Controllers
 {
@@ -21,7 +22,7 @@ namespace FoodReviews.Controllers
 
         // GET: api/MenuItems/{id}/Reviews
         [HttpGet("{id}/Reviews")]
-        public async Task<ActionResult<IEnumerable<MenuItemReviewViewModel>>> GetMenuItemReviews(int id)
+        public async Task<ActionResult<IEnumerable<MenuItemReviewViewModel>>> GetMenuItemReviews(int id,int page = 1)
         {
             try
             {
@@ -44,7 +45,7 @@ namespace FoodReviews.Controllers
                         Rating = r.Rating ?? 0,
                         Comment = r.Comment,
                         ReviewDate = r.ReviewDate ?? DateTime.Now
-                    })
+                    })                  
                     .ToList();
 
                 return Ok(reviews);

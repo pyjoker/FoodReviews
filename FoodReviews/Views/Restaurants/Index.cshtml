@@ -1,10 +1,11 @@
 ﻿@model IEnumerable<FoodReviews.Models.Restaurant>
-
+@using X.PagedList
+@using X.PagedList.Mvc.Core
 @{
     ViewData["Title"] = "餐廳搜尋";
     var isAdmin = ViewBag.IsAdmin ?? false;
 }
-
+<link href="~/css/pagedlist.css" rel="stylesheet" />
 <h1>餐廳搜尋</h1>
 
 <div class="row mb-3">
@@ -78,7 +79,7 @@
                 </td>
                 <td>@item.TotalReviews</td>
                 <td>
-                    <a asp-action="Details" asp-route-id="@item.RestaurantId" class="btn btn-info btn-sm">詳細資料</a>
+                    <a asp-action="Details" asp-route-id="@item.RestaurantId" class="btn btn-info btn-sm">菜單</a>
                     @if (isAdmin)
                     {
                         <a asp-action="Edit" asp-route-id="@item.RestaurantId" class="btn btn-primary btn-sm">編輯</a>
@@ -108,3 +109,7 @@
         margin: 0 2px;
     }
 </style>
+
+<div class="d-flex justify-content-center mt-4">
+    @Html.PagedListPager((IPagedList)Model, page => Url.Action("Index", new { page }))
+</div>

@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using FoodReviews.Models;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using X.PagedList;
+using X.PagedList.Mvc.Core;
 
 namespace FoodReviews.Controllers
 {
@@ -21,7 +23,7 @@ namespace FoodReviews.Controllers
         }
 
         // GET: Restaurants
-        public async Task<IActionResult> Index(string searchString, string address, decimal? minRating)
+        public async Task<IActionResult> Index(string searchString, string address, decimal? minRating, int page = 1)
         {
             ViewData["CurrentFilter"] = searchString;
             ViewData["AddressFilter"] = address;
@@ -53,8 +55,8 @@ namespace FoodReviews.Controllers
             {
                 restaurants = restaurants.Where(r => r.AverageRating >= minRating.Value);
             }
-
-            return View(await restaurants.ToListAsync());
+            return View(await restaurants.ToPagedListAsync(page, 10)); 
+            //return View(await restaurants.ToListAsync());
         }
 
         // GET: Restaurants/Details/5

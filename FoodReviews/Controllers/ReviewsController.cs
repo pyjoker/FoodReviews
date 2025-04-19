@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using FoodReviews.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using X.PagedList;
 
 namespace FoodReviews.Controllers
 {
@@ -19,16 +20,18 @@ namespace FoodReviews.Controllers
 
         // GET: api/Reviews/menuItem/5
         [HttpGet("menuItem/{menuItemId}")]
-        public async Task<ActionResult<IEnumerable<Review>>> GetReviewsForMenuItem(int menuItemId)
+        public async Task<ActionResult<IEnumerable<Review>>> GetReviewsForMenuItem(int menuItemId, int page = 1)
         {
             var reviews = await _context.Reviews
                 .Include(r => r.User)
                 .Where(r => r.MenuItemId == menuItemId)
                 .OrderByDescending(r => r.ReviewDate)
+                //.ToPagedListAsync(page, 2);
                 .ToListAsync();
 
             return reviews;
         }
+
 
         // POST: api/Reviews
         [HttpPost]
