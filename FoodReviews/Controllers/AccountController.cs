@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FoodReviews.Models;
+using System.Text;
+using System.Security.Cryptography;
 
 namespace FoodReviews.Controllers
 {
@@ -114,19 +116,37 @@ namespace FoodReviews.Controllers
                 ModelState.AddModelError("", "電子郵件已被使用");
                 return View();
             }
+            if (password.Length < 6)
+            {
+                ModelState.AddModelError("", "密碼至少需要 6 個字元");
+                return View();
+            }
+            // 創建新用戶
+            //var user = new User
+            //{
+            //    Username = username,
+            //    Email = email,
+            //    Password = password, // 注意：實際應用中應該加密密碼
+            //    RegisterDate = DateTime.Now
+            //};
+
+            //_context.Users.Add(user);
+            //await _context.SaveChangesAsync();
+            // ✅ 密碼雜湊（SHA256）
+            string hashedPassword = Convert.ToBase64String(
+                SHA256.HashData(Encoding.UTF8.GetBytes(password)));
 
             // 創建新用戶
             var user = new User
             {
                 Username = username,
                 Email = email,
-                Password = password, // 注意：實際應用中應該加密密碼
+                Password = hashedPassword,
                 RegisterDate = DateTime.Now
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
             // 自動登入
             var claims = new List<Claim>
             {
