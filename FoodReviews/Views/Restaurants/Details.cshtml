@@ -4,8 +4,10 @@
     ViewData["Title"] = Model.RestaurantName;
     var categories = ViewBag.Categories as List<string>;
     var selectedCategories = ViewBag.SelectedCategories as Dictionary<string, bool>;
+    var isAdmin = ViewBag.IsAdmin ?? false;
+    var menuItems = ViewData["MenuItems"] as List<FoodReviews.Models.MenuItem>;
 }
-
+<link href="~/css/pagedlist.css" rel="stylesheet" />
 <div class="restaurant-details">
     <div class="restaurant-header">
         <h1>@Model.RestaurantName</h1>
@@ -36,95 +38,144 @@
             }
         </div>
     </div>
-
-    <div class="menu-section">
-        <h2>菜單</h2>
-        
-        <div class="menu-controls">
-            <div class="category-filters">
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input category-filter" type="checkbox" 
-                           id="category-all" value="all" checked>
-                    <label class="form-check-label" for="category-all">全部</label>
-                </div>
-                @foreach (var category in categories)
+    @if (isAdmin)
+    {
+        <div class="row mb-3 justify-content-center">
+            <div class="col-md-8 text-center">
+                <form asp-action="Details" method="get" class="form-inline">
+                    <div class="row g-3 justify-content-center">
+                        <div class="col-md-4">
+                            <input type="text" name="searchString" class="form-control" placeholder="名稱" value="@ViewData["CurrentFilter"]" />
+                        </div>
+                        <div class="col-md-2">
+                            <input type="submit" value="搜尋" class="btn btn-primary" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <p>
+            <a asp-action="CreateFood" asp-controller="Restaurants" asp-route-restaurantId="@Model.RestaurantId" class="btn btn-primary">新增菜單</a>
+        </p>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>名稱</th>
+                    <th>種類</th>
+                    <th>價格</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in menuItems)
                 {
+                    <tr>
+                        <td>@item.ItemName</td>
+                        <td>@item.Category</td>
+                        <td>@item.Price</td>
+                        <!--
+                        <td>@Html.DisplayFor(modelItem => item.ItemName)</td>
+                        <td>@Html.DisplayFor(modelItem => item.Category)</td>
+                        <td>@Html.DisplayFor(modelItem => item.Price)</td>
+                        -->
+                        <td >
+                            <a asp-action="EditFood" asp-route-id="@item.MenuItemId" class="btn btn-primary btn-sm">編輯</a>
+                            <a asp-action="DeleteFood" asp-route-id="@item.MenuItemId" class="btn btn-danger btn-sm">刪除</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else{
+        <div class="menu-section">
+            <h2>菜單</h2>
+        
+            <div class="menu-controls">
+                <div class="category-filters">
                     <div class="form-check form-check-inline">
                         <input class="form-check-input category-filter" type="checkbox" 
-                               id="category-@category" value="@category" 
-                               @(selectedCategories[category] ? "checked" : "")>
-                        <label class="form-check-label" for="category-@category">@category</label>
+                               id="category-all" value="all" checked>
+                        <label class="form-check-label" for="category-all">全部</label>
+                    </div>
+                    @foreach (var category in categories)
+                    {
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input category-filter" type="checkbox" 
+                                   id="category-@category" value="@category" 
+                                   @(selectedCategories[category] ? "checked" : "")>
+                            <label class="form-check-label" for="category-@category">@category</label>
+                        </div>
+                    }
+                </div>
+
+                <div class="sort-controls">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input sort-radio" type="radio" 
+                               name="sortOrder" id="sort-default" value="default" checked>
+                        <label class="form-check-label" for="sort-default">預設排序</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input sort-radio" type="radio" 
+                               name="sortOrder" id="sort-rating-desc" value="rating-desc">
+                        <label class="form-check-label" for="sort-rating-desc">評分由高至低</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input sort-radio" type="radio" 
+                               name="sortOrder" id="sort-rating-asc" value="rating-asc">
+                        <label class="form-check-label" for="sort-rating-asc">評分由低至高</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-items">
+                @foreach (var category in categories)
+                {
+                    <div class="menu-category" data-category="@category">
+                        <h3>@category</h3>
+                        <div class="menu-items-grid">
+                            @foreach (var item in Model.MenuItems.Where(m => m.Category == category))
+                            {
+                                <div class="menu-item" 
+                                     data-rating="@(item.AverageRating ?? 0)" 
+                                     data-price="@item.Price"
+                                     data-item-id="@item.MenuItemId"
+                                     data-item-name="@item.ItemName"
+                                     data-item-description="@item.Description"
+                                     data-item-rating="@(item.AverageRating ?? 0)"
+                                     data-item-reviews="@item.TotalReviews"
+                                     onclick="showReviews(this)">
+                                    <div class="item-header">
+                                        <div class="item-name">@item.ItemName</div>
+                                        <div class="item-price">NT$ @item.Price.ToString("N0")</div>
+                                    </div>
+                                    @if (item.AverageRating.HasValue && item.AverageRating > 0)
+                                    {
+                                        <div class="item-rating">
+                                            <div class="stars">
+                                                @for (int i = 1; i <= 5; i++)
+                                                {
+                                                    if (i <= Math.Round(item.AverageRating.Value))
+                                                    {
+                                                        <span class="star filled">★</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="star">☆</span>
+                                                    }
+                                                }
+                                            </div>
+                                            <span class="review-count">(@item.TotalReviews)</span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 }
             </div>
-
-            <div class="sort-controls">
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input sort-radio" type="radio" 
-                           name="sortOrder" id="sort-default" value="default" checked>
-                    <label class="form-check-label" for="sort-default">預設排序</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input sort-radio" type="radio" 
-                           name="sortOrder" id="sort-rating-desc" value="rating-desc">
-                    <label class="form-check-label" for="sort-rating-desc">評分由高至低</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input sort-radio" type="radio" 
-                           name="sortOrder" id="sort-rating-asc" value="rating-asc">
-                    <label class="form-check-label" for="sort-rating-asc">評分由低至高</label>
-                </div>
-            </div>
         </div>
-
-        <div class="menu-items">
-            @foreach (var category in categories)
-            {
-                <div class="menu-category" data-category="@category">
-                    <h3>@category</h3>
-                    <div class="menu-items-grid">
-                        @foreach (var item in Model.MenuItems.Where(m => m.Category == category))
-                        {
-                            <div class="menu-item" 
-                                 data-rating="@(item.AverageRating ?? 0)" 
-                                 data-price="@item.Price"
-                                 data-item-id="@item.MenuItemId"
-                                 data-item-name="@item.ItemName"
-                                 data-item-description="@item.Description"
-                                 data-item-rating="@(item.AverageRating ?? 0)"
-                                 data-item-reviews="@item.TotalReviews"
-                                 onclick="showReviews(this)">
-                                <div class="item-header">
-                                    <div class="item-name">@item.ItemName</div>
-                                    <div class="item-price">NT$ @item.Price.ToString("N0")</div>
-                                </div>
-                                @if (item.AverageRating.HasValue && item.AverageRating > 0)
-                                {
-                                    <div class="item-rating">
-                                        <div class="stars">
-                                            @for (int i = 1; i <= 5; i++)
-                                            {
-                                                if (i <= Math.Round(item.AverageRating.Value))
-                                                {
-                                                    <span class="star filled">★</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="star">☆</span>
-                                                }
-                                            }
-                                        </div>
-                                        <span class="review-count">(@item.TotalReviews)</span>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-
+    }
     <div class="action-buttons">
         <a asp-action="Index" class="btn btn-secondary">返回列表</a>
         <a href="@Url.Action("Index", "Home")" class="btn btn-outline-primary">返回搜尋</a>
@@ -132,92 +183,93 @@
 </div>
 
 <!-- 評論彈出式視窗 -->
-<div class="modal fade" id="reviewsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="item-info mb-3">
-                    <h4 id="modalItemName"></h4>
-                    <div class="item-rating-summary">
-                        <span class="rating-value" id="modalItemRating"></span>
-                        <div class="stars" id="modalItemStars"></div>
-                        <span class="review-count" id="modalItemReviewCount"></span>
+@if (!isAdmin){
+    <div class="modal fade" id="reviewsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="item-info mb-3">
+                        <h4 id="modalItemName"></h4>
+                        <div class="item-rating-summary">
+                            <span class="rating-value" id="modalItemRating"></span>
+                            <div class="stars" id="modalItemStars"></div>
+                            <span class="review-count" id="modalItemReviewCount"></span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="reviews-container" id="reviewsContainer">
-                    <!-- 評論將在這裡動態加載 -->
-                </div>
+                    <div class="reviews-container" id="reviewsContainer">
+                        <!-- 評論將在這裡動態加載 -->
+                    </div>
                 
-                <!-- 分頁控制項 -->
-                <div class="pagination-container mt-3" id="paginationContainer" style="display: none;">
-                    <nav aria-label="評論分頁">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item">
-                                <a class="page-link" href="#" id="prevPage" aria-label="上一頁">
-                                    <span aria-hidden="true">&laquo;</span>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <span class="page-link" id="currentPage">1</span>
-                            </li>
-                            <li class="page-item">
-                                <span class="page-link" id="totalPages">/ 1</span>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="#" id="nextPage" aria-label="下一頁">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
+                    <!-- 分頁控制項 -->
+                    <div class="pagination-container mt-3" id="paginationContainer" style="display: none;">
+                        <nav aria-label="評論分頁">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item">
+                                    <a class="page-link" href="#" id="prevPage" aria-label="上一頁">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <span class="page-link" id="currentPage">1</span>
+                                </li>
+                                <li class="page-item">
+                                    <span class="page-link" id="totalPages">/ 1</span>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#" id="nextPage" aria-label="下一頁">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
 
-                <hr class="my-4" />
+                    <hr class="my-4" />
 
-                @if (User.Identity.IsAuthenticated)
-                {
-                    <div class="review-form mb-4">
-                        <h5>發表評論</h5>
-                        <form id="reviewForm" class="needs-validation" novalidate>
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" id="menuItemId" name="menuItemId" />
-                            <input type="hidden" id="selectedRating" name="rating" value="" required />
-                            <div class="mb-3">
-                                <label class="form-label">評分</label>
-                                <div class="star-rating">
-                                    <div class="star" data-rating="1">★</div>
-                                    <div class="star" data-rating="2">★</div>
-                                    <div class="star" data-rating="3">★</div>
-                                    <div class="star" data-rating="4">★</div>
-                                    <div class="star" data-rating="5">★</div>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <div class="review-form mb-4">
+                            <h5>發表評論</h5>
+                            <form id="reviewForm" class="needs-validation" novalidate>
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" id="menuItemId" name="menuItemId" />
+                                <input type="hidden" id="selectedRating" name="rating" value="" required />
+                                <div class="mb-3">
+                                    <label class="form-label">評分</label>
+                                    <div class="star-rating">
+                                        <div class="star" data-rating="1">★</div>
+                                        <div class="star" data-rating="2">★</div>
+                                        <div class="star" data-rating="3">★</div>
+                                        <div class="star" data-rating="4">★</div>
+                                        <div class="star" data-rating="5">★</div>
+                                    </div>
+                                    <div class="invalid-feedback">請選擇評分</div>
                                 </div>
-                                <div class="invalid-feedback">請選擇評分</div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="comment" class="form-label">評論內容</label>
-                                <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
-                                <div class="invalid-feedback">請輸入評論內容</div>
-                            </div>
-                            <button type="submit" class="btn btn-primary">提交評論</button>
-                        </form>
-                    </div>
-                }
-                else
-                {
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 請 <a href="@Url.Action("Login", "Account")">登入</a> 後發表評論
-                    </div>
-                }
+                                <div class="mb-3">
+                                    <label for="comment" class="form-label">評論內容</label>
+                                    <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
+                                    <div class="invalid-feedback">請輸入評論內容</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">提交評論</button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 請 <a href="@Url.Action("Login", "Account")">登入</a> 後發表評論
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     </div>
-</div>
-
+}
 <style>
     .restaurant-details {
         max-width: 1200px;

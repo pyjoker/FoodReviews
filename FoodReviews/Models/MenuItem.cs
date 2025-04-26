@@ -2,25 +2,32 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace FoodReviews.Models;
 
 public partial class MenuItem
 {
+    
     public int MenuItemId { get; set; }
-
+    [Required]
+    [DisplayName("餐廳編號")]
     public int? RestaurantId { get; set; }
-
+    [Required]
+    [DisplayName("食物名稱")]
     public string ItemName { get; set; }
-
+    [Required]
+    [DisplayName("價錢")]
     public decimal Price { get; set; }
-
+    [Required]
+    [DisplayName("種類")]
     public string Category { get; set; }
-
+    [DisplayName("描述")]
     public string Description { get; set; }
-
+    [DisplayName("評分")]
     public decimal? AverageRating { get; set; }
-
+    [DisplayName("評論數")]
     public int? TotalReviews { get; set; }
 
     public virtual Restaurant Restaurant { get; set; }

@@ -60,13 +60,22 @@ namespace FoodReviews.Controllers
         }
 
         // GET: Restaurants/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int? id, string searchString, int page = 1)
         {
+            ViewData["CurrentFilter"] = searchString;
             if (id == null)
             {
                 return NotFound();
             }
-
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = false;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await _context.Users.FindAsync(int.Parse(userId));
+                isAdmin = user?.IsAdmin ?? false;
+            }
+            ViewBag.IsAdmin = isAdmin;
+            // 獲取餐廳詳細信息，包括菜單項目和評論
             var restaurant = await _context.Restaurants
                 .Include(r => r.MenuItems)
                     .ThenInclude(m => m.Reviews)
@@ -90,6 +99,17 @@ namespace FoodReviews.Controllers
 
             ViewBag.Categories = categories;
             ViewBag.SelectedCategories = selectedCategories;
+            // 查詢該餐廳的菜單項目
+            var menuItems = _context.MenuItems
+                .Where(m => m.RestaurantId == id);
+
+            // 根據名稱搜尋
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                menuItems = menuItems.Where(m => m.ItemName.Contains(searchString));
+            }
+
+            ViewData["MenuItems"] = await menuItems.ToListAsync();
 
             return View(restaurant);
         }
@@ -138,6 +158,57 @@ namespace FoodReviews.Controllers
                 return RedirectToAction(nameof(Index));
             }
             return View(restaurant);
+        }
+
+        // GET: Restaurants/CreateFood
+        public IActionResult CreateFood(int restaurantId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+            var menuItem = new MenuItem { RestaurantId = restaurantId };
+            var user = _context.Users.Find(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Details", "Restaurants", new { id = menuItem.RestaurantId });
+            }
+            
+            return View(menuItem);
+        }
+
+        // POST: Restaurants/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateFood([Bind("RestaurantId,ItemName,Category,Price,Description")] MenuItem menuItem)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+            var restaurant = await _context.Restaurants.FindAsync(menuItem.RestaurantId);
+            if (restaurant == null)
+            {
+                ModelState.AddModelError("RestaurantId", "餐廳不存在。");
+                return View(menuItem);
+            }
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Details", "Restaurants", new { id = menuItem.RestaurantId });
+            }
+
+            if (ModelState.IsValid)
+            {
+                _context.Add(menuItem);
+                await _context.SaveChangesAsync();
+                return RedirectToAction("Details", "Restaurants", new { id = menuItem.RestaurantId });
+            }
+            return View(menuItem);
         }
 
         // GET: Restaurants/Edit/5
@@ -214,6 +285,84 @@ namespace FoodReviews.Controllers
             }
             return View(restaurant);
         }
+        // GET: Restaurants/EditFood/5
+        public async Task<IActionResult> EditFood(int? id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Index");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var menuItems = await _context.MenuItems.FindAsync(id);
+            if (menuItems == null)
+            {
+                return NotFound();
+            }
+            return View(menuItems);
+        }
+
+        // POST: Restaurants/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditFood(int id, [Bind("MenuItemId,RestaurantId,ItemName,Category,Price,Description,AverageRating,TotalReviews")] MenuItem menuItem)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Details");
+            }
+
+            if (id != menuItem.MenuItemId)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                var existingItem = await _context.MenuItems.FindAsync(id);
+                if (existingItem == null)
+                    return NotFound();
+
+                // 僅更新允許的欄位，保留其他欄位原值
+                existingItem.ItemName = menuItem.ItemName;
+                existingItem.Category = menuItem.Category;
+                existingItem.Price = menuItem.Price;
+                existingItem.Description = menuItem.Description;
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    Console.WriteLine("儲存成功");
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    throw;
+                }
+
+                return RedirectToAction("Details", new { id = existingItem.RestaurantId });
+            }
+            return View(menuItem);
+        }
 
         // GET: Restaurants/Delete/5
         public async Task<IActionResult> Delete(int? id)
@@ -270,7 +419,62 @@ namespace FoodReviews.Controllers
             }
             return RedirectToAction(nameof(Index));
         }
+   
+        // GET: Restaurants/DeleteFood/5
+        public async Task<IActionResult> DeleteFood(int? id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
 
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var menuitem = await _context.MenuItems
+                .FirstOrDefaultAsync(m => m.MenuItemId == id);
+            if (menuitem == null)
+            {
+                return NotFound();
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Details", "Restaurants", new { id = menuitem.RestaurantId });
+            }
+
+            return View(menuitem);
+        }
+
+        // POST: Restaurants/DeleteFood/5
+        [HttpPost, ActionName("DeleteFood")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteFoodConfirmed(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var user = await _context.Users.FindAsync(int.Parse(userId));
+            if (user == null || !user.IsAdmin)
+            {
+                return RedirectToAction("Index");
+            }
+
+            var menuitem = await _context.MenuItems.FindAsync(id);
+            if (menuitem != null)
+            {
+                _context.MenuItems.Remove(menuitem);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("Details", "Restaurants", new { id = menuitem.RestaurantId });
+        }
         private bool RestaurantExists(int id)
         {
             return _context.Restaurants.Any(e => e.RestaurantId == id);
